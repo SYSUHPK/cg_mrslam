@@ -51,18 +51,18 @@ GraphComm::GraphComm (MRGraphSLAM* gslam, int idRobot, int nRobots, std::string 
   bind(_iSock,(struct sockaddr*)&sockAddr,sizeof(sockAddr));
 
 }
-
+// 初始化三个线程，分别用于发送，接收，和处理
 void GraphComm::init_threads(){
   sthread = boost::thread(&GraphComm::sendToThrd, this);
   rthread = boost::thread(&GraphComm::receiveFromThrd, this);
   pthread = boost::thread(&GraphComm::processQueueThrd, this);
 }
-
+// 初始化网络调用初始化线程
 void GraphComm::init_network(RosHandler* rh){
   _rh = rh;
   init_threads();
 }
-
+// 计算距离
 bool GraphComm::inCommunicationRange(int r1, int r2){
   return distanceSE2(_rh->getGroundTruth(r1), _rh->getGroundTruth(r2)) < SIM_COMM_RANGE;
 }
@@ -191,7 +191,7 @@ void GraphComm::receiveFromThrd(){
     _queue.push(vmsg);
   }
 }
-
+// 将接收的数据添加到InnterRobotData
 void GraphComm::processQueueThrd(){
 
   while(1){

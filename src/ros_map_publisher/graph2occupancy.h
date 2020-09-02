@@ -33,7 +33,7 @@ using namespace std;
 using namespace Eigen;
 using namespace g2o;
 
-
+// graph to occupancy
 class Graph2occupancy {
 	
  public:

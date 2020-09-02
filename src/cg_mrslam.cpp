@@ -43,7 +43,7 @@ using namespace g2o;
 
 int main(int argc, char **argv)
 {
-
+  // g2o中的类，变量设置
   CommandArgs arg;
   double resolution;
   double maxScore, maxScoreMR;
@@ -65,7 +65,8 @@ int main(int argc, char **argv)
 
   std::string modality;
   TypeExperiment typeExperiment;
-  
+  // key-value default notes
+  // 从指令中读取数据设置
   arg.param("resolution",  resolution, 0.025, "resolution of the matching grid");
   arg.param("maxScore",    maxScore, 0.15,     "score of the matcher, the higher the less matches");
   arg.param("kernelRadius", kernelRadius, 0.2,  "radius of the convolution kernel");
@@ -91,8 +92,10 @@ int main(int argc, char **argv)
   arg.param("publishGraph", publishGraph, false, "Publish graph");
   arg.param("modality", modality, "sim", "Choose mrslam modality from [sim, real, bag]. Consult Readme for differences between modalities.");
   arg.param("o", outputFilename, "", "file where to save output");
+  // 赋值载入
   arg.parseArgs(argc, argv);
   
+  // 模式设置
   if (modality != "sim" && modality != "real" && modality != "bag"){
     std::cerr << "Unknown modality: " << modality << std::endl;
     exit(0);
@@ -107,6 +110,7 @@ int main(int argc, char **argv)
   }
   
   //map parameters
+  // map的参数设置
   float mapResolution = 0.05;
   float occupiedThreshold = 0.65; 
   float rows = 0;
@@ -116,26 +120,30 @@ int main(int argc, char **argv)
   float angle = M_PI_2;
   float freeThreshold = 0.196;
 
-
+  // nodename，可以作为私有命名空间
   ros::init(argc, argv, "cg_mrslam");
-
+  // 初始化了一系列的东西，设置一系列的位姿
   RosHandler rh(idRobot, nRobots, typeExperiment);
   rh.setOdomTopic(odometryTopic);
   rh.setScanTopic(scanTopic);
   rh.setBaseFrame(baseFrame);
   rh.useOdom(true);
   rh.useLaser(true);
-
+  // 初始化odom，scan，base
   rh.init();   //Wait for initial odometry and laserScan
+  // 根据三种模式，订阅和发布不同的信息
   rh.run();
-
+  // 获得laser的最大range
   maxRange = rh.getLaserMaxRange();
   usableRange = maxRange;
   infinityFillingRange = 5.0;
 
   //For estimation
+  // 使用g2o进行优化计算
   SE2 currEst;
+  // 获取odompose
   SE2 odomPosk_1 = rh.getOdom();
+  // 判断初始位姿合理性
   if (initialPose.size()){
     if (initialPose.size()==3){
       currEst = SE2(initialPose[0],initialPose[1],initialPose[2]);
@@ -144,8 +152,10 @@ int main(int argc, char **argv)
       exit(0);
     }
   }else{
+  // 如果是SIM模式，没有初始位姿，需要获取GroundTruth
     if (typeExperiment == SIM)
       currEst = rh.getGroundTruth(idRobot);
+    // 初始化pos和odom一样
     else
       currEst = odomPosk_1;
   }
@@ -154,25 +164,35 @@ int main(int argc, char **argv)
   std::cout << "My initial odometry is: " << odomPosk_1.translation().x() << " " << odomPosk_1.translation().y() << " " << odomPosk_1.rotation().angle() << std::endl;
 
   //Graph building
+  // 点云和轨迹，用于显示
+  // 与InterRobot相关
   MRGraphSLAM gslam;
+  // id
   gslam.setIdRobot(idRobot);
+  // base id
   int baseId = 10000;
   gslam.setBaseId(baseId);
+  // 优化初始化，包括分辨率，内核，闭环检测的滑动窗口过，最大score，内群阈值，最小内群边数
   gslam.init(resolution, kernelRadius, windowLoopClosure, maxScore, inlierThreshold, minInliers);
+  // 设置closure参数
   gslam.setInterRobotClosureParams(maxScoreMR, minInliersMR, windowMRLoopClosure);
-
+  // 设置laser的一些参数并获取
   RobotLaser* rlaser = rh.getLaser();
-
+  // 设置laser初始化Data
   gslam.setInitialData(currEst, rlaser);
-
+  // 占用地图和地图中心
   cv::Mat occupancyMap;
   Eigen::Vector2f mapCenter;
   
   //Map building
+  // 网格占用地图，用于merge
+  // 将graph转为occupancy map
   Graph2occupancy mapCreator(gslam.graph(), &occupancyMap, currEst, mapResolution, occupiedThreshold, rows, cols, maxRange, usableRange, infinityFillingRange, gain, squareSize, angle, freeThreshold);
+  // 用于保存map
   OccupancyMapServer mapServer(&occupancyMap, idRobot, mapFrame, mapTopic, occupiedThreshold, freeThreshold);
+  // 用于用于发布graph
   GraphRosPublisher graphPublisher(gslam.graph(), mapFrame, odomFrame);
-
+  // 发布map和graph
   if (publishMap){
     mapCreator.computeMap();
     
@@ -193,6 +213,7 @@ int main(int argc, char **argv)
     graphPublisher.publishGraph();
   
   //Saving g2o file
+  // 保存g2o文件 graph
   char buf[100];
   sprintf(buf, "robot-%i-%s", idRobot, outputFilename.c_str());
   ofstream ofmap(buf);
@@ -200,22 +221,25 @@ int main(int argc, char **argv)
 
   ////////////////////
   //Setting up network
+  // 设置网络
   GraphComm gc(&gslam, idRobot, nRobots, base_addr, typeExperiment);
   gc.init_network(&rh);
-
+  // 重复操作
   ros::Rate loop_rate(10);
   while (ros::ok()){
     ros::spinOnce();
-
+    // 获取当前odom
     SE2 odomPosk = rh.getOdom(); //current odometry
+    // 上一个odom*现在的 = 真实的
     SE2 relodom = odomPosk_1.inverse() * odomPosk;
     currEst *= relodom;
-
+    // 赋值
     odomPosk_1 = odomPosk;
-
+    // 达到更新条件
     if((distanceSE2(gslam.lastVertex()->estimate(), currEst) > localizationLinearUpdate) || 
        (fabs(gslam.lastVertex()->estimate().rotation().angle()-currEst.rotation().angle()) > localizationAngularUpdate)){
       //Add new data
+      // 添加新数据 找约束 优化
       RobotLaser* laseri = rh.getLaser();
 
       gslam.addDataSM(currEst, laseri);
@@ -223,21 +247,23 @@ int main(int argc, char **argv)
       gslam.findInterRobotConstraints();
 
       gslam.optimize(5);
-
+      // 赋值
       currEst = gslam.lastVertex()->estimate();
       char buf[100];
       sprintf(buf, "robot-%i-%s", idRobot, outputFilename.c_str());
+      // 保存graph
       gslam.saveGraph(buf);
-
+      // 设置
       if (publishMap || publishGraph){
 	graphPublisher.setEstimate(gslam.lastVertex()->estimate());
 	graphPublisher.setOdom(odomPosk_1);
       }
 
       //Publish graph to visualize it on Rviz
+      // 发布
       if (publishGraph)
 	graphPublisher.publishGraph();
-      
+      // 更新发布
       if (publishMap){
 	//Update map
         mapCreator.computeMap();
@@ -257,7 +283,7 @@ int main(int argc, char **argv)
     
     loop_rate.sleep();
   }
-
+  // 优化保存
   cerr << "Last Optimization...";
   gslam.optimize(5);
   gslam.saveGraph(buf);

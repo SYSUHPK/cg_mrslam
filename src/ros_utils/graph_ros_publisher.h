@@ -49,7 +49,7 @@
 
 using namespace g2o;
 using namespace std;
-
+// 与graph相关的一些设置
 class GraphRosPublisher
 {
  public:

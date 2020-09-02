@@ -27,7 +27,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "graph_ros_publisher.h"
-
+// 发布graph
 GraphRosPublisher::GraphRosPublisher(OptimizableGraph* graph, string mapFrame, string odomFrame){
   _graph = graph;
   _mapFrame = mapFrame;

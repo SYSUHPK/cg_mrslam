@@ -49,7 +49,7 @@
 #define COMM_TIME 10.0
 
 typedef std::queue<StampedRobotMessage> msgQueue;
-
+// 网络
 class GraphComm
 {
  public:

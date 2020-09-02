@@ -38,7 +38,7 @@ struct StampedRobotMessage{
   OptimizableGraph::Vertex* refVertex; //Current vertex when the msg was received
   RobotMessage* msg;
 };
-
+// 主要是一些与InterRobot相关的
 class MRGraphSLAM : public GraphSLAM
 {
  public:

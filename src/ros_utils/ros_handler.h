@@ -46,7 +46,7 @@
 enum TypeExperiment {SIM, REAL, BAG};
   
 using namespace g2o;
-
+// 主要是一些参数的设置，获取数据之类的，发布的是
 class RosHandler
 {
  public:

@@ -27,13 +27,14 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ros_handler.h"
-
+// 其实ros_handler就相当于把nodehandle等各种东西集合起来
+// 一些相关的参数设置，类似ns，topic等
 RosHandler::RosHandler (int idRobot, int nRobots, TypeExperiment typeExperiment){
 
   _idRobot = idRobot;
   _nRobots = nRobots;
   _typeExperiment = typeExperiment;
-
+  // g2o的2D pose vertex
   _gtPoses = new SE2[nRobots];
   _subgt = new ros::Subscriber[nRobots];
   _timeLastPing = new ros::Time[nRobots];
@@ -56,7 +57,7 @@ RosHandler::RosHandler (int idRobot, int nRobots, TypeExperiment typeExperiment)
   std::cerr << "NAMESPACE: " << fullns << std::endl;
   std::cerr << "ROOT NAMESPACE: " << _rootns << std::endl;
 }
-
+// 各种callback
 void RosHandler::pingCallback(const cg_mrslam::Ping::ConstPtr& msg){
   int robot = msg->robotFrom;
   std::cerr << "Received Ping from robot " << robot << std::endl;
@@ -86,7 +87,7 @@ SE2 RosHandler::getOdom(){
   odomSE2.setRotation(Eigen::Rotation2Dd(tf::getYaw(_odom.pose.pose.orientation)));
   return odomSE2;
 }
-
+// 设置并获取laser的一些参数
 RobotLaser* RosHandler::getLaser(){
 
   LaserParameters lparams(0, _laserscan.ranges.size(), _laserscan.angle_min,  _laserscan.angle_increment, _laserscan.range_max, 0.1, 0);
@@ -108,15 +109,15 @@ RobotLaser* RosHandler::getLaser(){
 
   return rlaser;
 }
-
+// 初始化
 void RosHandler::init(){
-
+  // 初始化odom
   if (_useOdom){
     //Init Odom
     nav_msgs::Odometry::ConstPtr odommsg = ros::topic::waitForMessage<nav_msgs::Odometry>(_odomTopic);
     _odom = *odommsg;
   }
-  
+  // 初始化 laser scan
   if (_useLaser){
   //Init scan
     sensor_msgs::LaserScan::ConstPtr lasermsg = ros::topic::waitForMessage<sensor_msgs::LaserScan>(_scanTopic);
@@ -141,7 +142,7 @@ void RosHandler::init(){
 
     std::cerr << "Robot-laser transform: (" << _trobotlaser.translation().x() << ", " << _trobotlaser.translation().y() << ", " << _trobotlaser.rotation().angle() << ")" << std::endl;
   }
-
+  // 初始化base pose
   if (_typeExperiment == SIM){
     //Init ground-truth
     for (int r = 0; r < _nRobots; r++){
@@ -153,14 +154,14 @@ void RosHandler::init(){
   }
 
 }
-
+// run，订阅odom，laser，以及根据不同模式修改
 void RosHandler::run(){
   if (_useOdom) //Subscribe Odom
     _subOdom = _nh.subscribe<nav_msgs::Odometry>(_odomTopic, 1, &RosHandler::odomCallback, this);
     
   if (_useLaser) //Subscribe Laser
     _subScan = _nh.subscribe<sensor_msgs::LaserScan>(_scanTopic, 1,  &RosHandler::scanCallback, this);
-
+  // BAG模式：订阅ping_msgs | SIM模式：订阅ground truth | REAL模式：发布ping，sent和received 信息
   if (_typeExperiment == BAG){
     //subscribe pings
     _subPing = _nh.subscribe<cg_mrslam::Ping>("ping_msgs", 1, &RosHandler::pingCallback, this);
@@ -213,7 +214,7 @@ void RosHandler::createComboMsg(ComboMessage* cmsg, cg_mrslam::SLAM& dslamMsg){
     dslamMsg.vertices[i].estimate[2] = cmsg->vertexVector[i].estimate[2];   
   }
 }
-
+// 创建condensegraph msg
 void RosHandler::createCondensedGraphMsg(CondensedGraphMessage* gmsg,  cg_mrslam::SLAM& dslamMsg){
   dslamMsg.header.stamp = ros::Time::now();
 

@@ -64,7 +64,7 @@ class GraphSLAM{
   void setInitialData(SE2 initialOdom, RobotLaser* laser);
   void addData(SE2 pose, RobotLaser* laser);
   void addDataSM(SE2 pose, RobotLaser* laser);
-
+  // 这里可以产生graph
   inline SparseOptimizer *graph() {return _graph;}
   inline VertexSE2 *lastVertex() {return _lastVertex;}
   inline SE2 lastOdom() {return _lastOdom;}

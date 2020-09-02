@@ -45,11 +45,11 @@ MRGraphSLAM::MRGraphSLAM() :condensedGraphs(GraphSLAM::graph()),
 
   detectRobotInRange = false;
 			    }
-
+// 设置id
 void MRGraphSLAM::setIdRobot(int idRobot){
   GraphSLAM::setIdRobot(idRobot);
 }
-
+// 设置closure参数
 void MRGraphSLAM::setInterRobotClosureParams(double maxScoreMR_, int minInliersMR_, int windowMRLoopClosure_){
   maxScoreMR = maxScoreMR_;
   minInliersMR = minInliersMR_;
@@ -481,7 +481,7 @@ void MRGraphSLAM::addInterRobotData(GraphMessage* gmsg){
   }
 
 }
-
+// 添加数据
 void MRGraphSLAM::addInterRobotData(StampedRobotMessage vmsg){
   boost::mutex::scoped_lock lockg(graphMutex);
   std::cerr << "Adding inter robot data " << std::endl;

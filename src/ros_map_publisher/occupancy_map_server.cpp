@@ -63,7 +63,7 @@ OccupancyMapServer::OccupancyMapServer(cv::Mat* occupancyMap, int idRobot, strin
 
 
 
-
+// 发布map
 void OccupancyMapServer::publishMap() {
 
 
